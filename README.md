@@ -15,6 +15,8 @@ java -jar DBGenerator.jar unihan|nounihan|all
 This will download [ucd.<choice>.flat.zip](https://www.unicode.org/Public/UCD/latest/ucdxml/) and generate DB from xml file inside zip.
 Depending on your choice, this can be slow operation, so go take a break for a tea or coffee :tea:.
 This will also set `VARIANT` variable value in [UniLookup.java](src/main/java/com/velitar/unilookup/UniLookup.java)
+  
+ For more information see [ucdxml.readme.txt](https://www.unicode.org/Public/UCD/latest/ucdxml/ucdxml.readme.txt) and [Unihan Database](https://www.unicode.org/charts/unihan.html)
 
 ### Using pre-build DB
 1) Move `symbols.db.all` to `src/main/resources` and remove `.all` extension.
