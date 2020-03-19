@@ -1,5 +1,10 @@
 package com.velitar.unilookup;
 
+/**
+ * Unicode symbol representation
+ * @author Velitar
+ * @version 0.1a
+ */
 public class Symbol {
     public final String value,
                         name,

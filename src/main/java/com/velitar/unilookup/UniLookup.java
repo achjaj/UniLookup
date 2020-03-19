@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
+ * Lookup table
  * @author Velitar
  * @version 0.1a
  */
