@@ -26,3 +26,9 @@ Now you can run
 mvn package
 ```
 and use the library generated inside `target` directory.
+
+# Generate JavaDoc
+Run 
+```
+mvn javadoc:javadoc
+```
