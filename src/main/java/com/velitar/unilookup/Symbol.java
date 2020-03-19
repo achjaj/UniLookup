@@ -15,10 +15,19 @@ public class Symbol {
         this.emoji = emoji;
     }
 
+    /**
+     * Compare two symbols by their name.
+     * @param symbol another symbol
+     * @return true if name of given symbol equals name of this symbol
+     */
     public boolean equalsByName(Symbol symbol) {
         return symbol.name.equals(name);
     }
 
+    /**
+     * Get char for current symbol.
+     * @return char representation
+     */
     public char aChar() {
         return !value.equals("null") ? (char) Integer.parseInt(value, 16) : 0;
     }
