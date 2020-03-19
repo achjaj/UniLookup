@@ -12,7 +12,7 @@ From project root directory run
 ```
 java -jar DBGenerator.jar unihan|nounihan|all
 ```
-This will download [ucd.<choice>.flat.zip](https://www.unicode.org/Public/UCD/latest/ucdxml/) and generate DB from xml file inside zip.
+This will download [ucd.%choice%.flat.zip](https://www.unicode.org/Public/UCD/latest/ucdxml/) and generate DB from xml file inside zip.
 Depending on your choice, this can be slow operation, so go take a break for a tea or coffee :tea:.
 This will also set `VARIANT` variable value in [UniLookup.java](src/main/java/com/velitar/unilookup/UniLookup.java)
   
