@@ -2,8 +2,8 @@
 Unicode lookup table library for Java
 
 # Dependencies
-* Java 11+
-* [xerial's sqlite-jdbc](https://github.com/xerial/sqlite-jdbc) (alredy included in pom.xml)
+* Java 8+
+* [xerial's sqlite-jdbc](https://github.com/xerial/sqlite-jdbc) (alredy included in pom.xml) or another SQLite JDBC driver
 
 # Build
 First of all you have to generate sqlite database or you can use pre-build database generated from [ucd.all.flat.xml](https://www.unicode.org/Public/UCD/latest/ucdxml/).
