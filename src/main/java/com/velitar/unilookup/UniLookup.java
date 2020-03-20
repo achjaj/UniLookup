@@ -16,7 +16,7 @@ import java.util.stream.Stream;
  */
 public class UniLookup {
     public static final String VERSION = "0.1a";
-    public static final String VARIANT = "%all%";
+    public static final String VARIANT = "%var%";
 
     private final HashMap<String, String> groupsAcronymsMap;
     private final Statement statement;
