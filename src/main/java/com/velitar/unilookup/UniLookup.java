@@ -135,6 +135,14 @@ public class UniLookup {
     }
 
     /**
+     * Get names of all groups
+     * @return array of String of all names
+     */
+    public String[] getGroupsNames() {
+        return groupsAcronymsMap.values().toArray(new String[]{});
+    }
+
+    /**
      * Returns full group name for given acronym.
      * Example: getGroupName("Cc") returns "Control"
      * @param acronym group acronym
@@ -146,10 +154,10 @@ public class UniLookup {
 
     /**
      * Returns set of all acronyms.
-     * @return {@link Set} of all acronyms
+     * @return array of Strings of all acronyms
      */
-    public Set<String> getGroupsAcronyms() {
-        return groupsAcronymsMap.keySet();
+    public String[] getGroupsAcronyms() {
+        return groupsAcronymsMap.keySet().toArray(new String[]{});
     }
 
     private void handleExceptionPrinting(SQLException e) {
@@ -214,7 +222,7 @@ public class UniLookup {
      * @return {@link List} of {@link Symbol}s or null if there is no such name
      */
     public List<Symbol> getByName(String name) {
-        return getByNameFromGroups(name, getValidGroupsAcronyms());
+        return getByNameFromGroups(name, getGroupsAcronyms());
     }
 
     /**
@@ -253,7 +261,7 @@ public class UniLookup {
      * @return {@link List} of {@link Symbol}s or null if there is no such symbol
      */
     public List<Symbol> findNameSeq(String nameSeq) {
-        return findNameSeqInGroups(nameSeq, getValidGroupsAcronyms());
+        return findNameSeqInGroups(nameSeq, getGroupsAcronyms());
     }
 
     /**
@@ -293,7 +301,7 @@ public class UniLookup {
      * @return {@link Symbol} or null if there is no such symbol
      */
     public Symbol getByValue(String value) {
-        return getByValueFromGroups(value, getValidGroupsAcronyms());
+        return getByValueFromGroups(value, getGroupsAcronyms());
     }
 
     /**
@@ -303,7 +311,7 @@ public class UniLookup {
      */
     public List<Symbol> getSymbols() {
         return queryStreamToList(
-                Arrays.stream(getValidGroupsAcronyms())
+                Arrays.stream(getGroupsAcronyms())
                 .map(this::getGroup)
         );
     }
@@ -341,15 +349,6 @@ public class UniLookup {
         if (debug) System.out.printf("Executing query: %s%n", cmd);
 
         return statement.executeQuery(cmd);
-    }
-
-    /**
-     * Get {@link Set} with acronyms from table.
-     * @return {@link Set} with acronyms
-     */
-    public String[] getValidGroupsAcronyms() {
-        String[] strs = new String[]{};
-        return groupsAcronymsMap.keySet().toArray(strs);
     }
 
     /**
