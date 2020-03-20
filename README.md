@@ -34,3 +34,5 @@ Run
 ```
 mvn javadoc:javadoc
 ```
+# Android
+Xerial's sqlite-jdbc driver does not work on Android so you have to use different driver, for exaple [SQLDroid](https://github.com/SQLDroid/SQLDroid). Just add it to your project and use UniLookup jar without dependencies.
