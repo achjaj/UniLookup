@@ -1,6 +1,9 @@
 package com.velitar.unilookup;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -16,7 +19,7 @@ import java.util.stream.Stream;
  */
 public class UniLookup {
     public static final String VERSION = "0.1a";
-    public static final String VARIANT = "%all%";
+    public static final String VARIANT = "%var%";
 
     private final HashMap<String, String> groupsAcronymsMap;
     private final Statement statement;
@@ -46,14 +49,15 @@ public class UniLookup {
         this(new File(System.getProperty("user.home"), ".unilookup"));
     }
 
-    /**
-     * Convert int or char into correct {@link Symbol} value.
-     * @param i symbol char/int
-     * @return correct value
-     */
-    public static String intToValue(int i) {
-        String value = Integer.toHexString(i).toUpperCase();
-        return value.length() == 4 ? value : "0" + value;
+    private String getResource(String name) throws IOException {
+        if (!tmpResources.exists() || !tmpResources.isDirectory())
+            createTmpDir();
+
+        var resourceFile = new File(tmpResources, name);
+        if (!resourceFile.exists() || !resourceFile.isFile())
+            unpack(name, resourceFile.toPath());
+
+        return resourceFile.getAbsolutePath();
     }
 
     private void createTmpDir() throws IOException {
@@ -61,28 +65,27 @@ public class UniLookup {
             throw new IOException("Cannot create resources folder!");
     }
 
-    private String getResource(String name) throws IOException {
-        if (!tmpResources.exists() || !tmpResources.isDirectory())
-            createTmpDir();
-
-        File resourceFile = new File(tmpResources, name);
-        if (!resourceFile.exists() || !resourceFile.isFile())
-            unpack(name, resourceFile.toPath());
-
-        return resourceFile.getAbsolutePath();
-    }
-
     private void unpack(String name, Path destination) throws IOException {
         System.out.println("[UniLookup] Extracting " + name);
-        InputStream is = getClass().getClassLoader().getResourceAsStream(name);
+        var is = getClass().getClassLoader().getResourceAsStream(name);
 
         Files.copy(is, destination);
     }
 
     private void deleteResource(String name) throws IOException {
-        File rf = new File(tmpResources, name);
+        var rf = new File(tmpResources, name);
         if (rf.exists() && !rf.delete())
             throw new IOException("Cannot delete " + name);
+    }
+
+    private HashMap<String, String> loadGroups() throws IOException {
+        var result = new HashMap<String, String>();
+
+        Files.readAllLines(Paths.get(getResource("groups.csv"))).stream()
+                .map(line -> line.split(";"))
+                .forEach(pair -> result.put(pair[0], pair[1]));
+
+        return result;
     }
 
     private Symbol parseSymbol(ResultSet set) throws SQLException {
@@ -93,14 +96,12 @@ public class UniLookup {
                           set.getInt("emoji") == 1);
     }
 
-    private HashMap<String, String> loadGroups() throws IOException {
-        HashMap<String, String> result = new HashMap<>();
+    private List<Symbol> parseQuery(ResultSet query) throws SQLException {
+        var list = new ArrayList<Symbol>();
+        while (query.next())
+            list.add(parseSymbol(query));
 
-        Files.readAllLines(Paths.get(getResource("groups.csv"))).stream()
-                .map(line -> line.split(";"))
-                .forEach(pair -> result.put(pair[0], pair[1]));
-
-        return result;
+        return list.size() > 0 ? list : null;
     }
 
     private List<Symbol> queryStreamToList(Stream<List<Symbol>> stream) {
@@ -111,12 +112,13 @@ public class UniLookup {
                         .collect(Collectors.toList());
     }
 
-    private List<Symbol> parseQuery(ResultSet query) throws SQLException {
-        ArrayList<Symbol> list = new ArrayList<>();
-        while (query.next())
-            list.add(parseSymbol(query));
+    private void handleExceptionPrinting(SQLException e) {
+        var sw = new StringWriter();
+        var pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
 
-        return list.size() > 0 ? list : null;
+        if (!sw.toString().contains("no such table"))
+            e.printStackTrace();
     }
 
     /**
@@ -152,15 +154,6 @@ public class UniLookup {
         return groupsAcronymsMap.keySet();
     }
 
-    private void handleExceptionPrinting(SQLException e) {
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        e.printStackTrace(pw);
-
-        if (!sw.toString().contains("no such table"))
-            e.printStackTrace();
-    }
-
     /**
      * Get {@link Symbol}s from given group.
      * @param group group acronym
@@ -168,7 +161,7 @@ public class UniLookup {
      */
     public List<Symbol> getGroup(String group) {
         try {
-            ResultSet query = executeQuery("SELECT * FROM " + group);
+            var query = executeQuery("SELECT * FROM " + group);
 
             return parseQuery(query);
         } catch (SQLException e) {
@@ -185,7 +178,7 @@ public class UniLookup {
      */
     public List<Symbol> getByNameFromGroup(String name, String group) {
         try {
-            ResultSet query = executeQuery(String.format("SELECT * FROM %s WHERE name='%s'", group, name.toUpperCase()));
+            var query = executeQuery(String.format("SELECT * FROM %s WHERE name='%s'", group, name.toUpperCase()));
 
             return parseQuery(query);
         } catch (SQLException e) {
@@ -201,7 +194,7 @@ public class UniLookup {
      * @return {@link List} of {@link Symbol}s or null if there is no such name
      */
     public List<Symbol> getByNameFromGroups(String name, String... groups) {
-        List<Symbol> list = queryStreamToList(Arrays.stream(groups)
+        var list = queryStreamToList(Arrays.stream(groups)
                 .map(group -> getByNameFromGroup(name, group)));
 
 
@@ -214,7 +207,7 @@ public class UniLookup {
      * @return {@link List} of {@link Symbol}s or null if there is no such name
      */
     public List<Symbol> getByName(String name) {
-        return getByNameFromGroups(name, getValidGroupsAcronyms());
+        return getByNameFromGroups(name, getValidGroupsAcronyms().toArray(String[]::new));
     }
 
     /**
@@ -225,7 +218,7 @@ public class UniLookup {
      */
     public List<Symbol> findNameSeqInGroup(String nameSeq, String group) {
         try {
-            ResultSet query = executeQuery(String.format("SELECT * FROM %s WHERE name LIKE '%%%s%%'", group, nameSeq.toUpperCase()));
+            var query = executeQuery(String.format("SELECT * FROM %s WHERE name LIKE '%%%s%%'", group, nameSeq.toUpperCase()));
 
             return parseQuery(query);
         } catch (SQLException e) {
@@ -241,7 +234,7 @@ public class UniLookup {
      * @return {@link List} of {@link Symbol}s or null if there is no such symbol
      */
     public List<Symbol> findNameSeqInGroups(String nameSeq, String... groups) {
-        List<Symbol> list = queryStreamToList(Arrays.stream(groups)
+        var list = queryStreamToList(Arrays.stream(groups)
                 .map(group -> findNameSeqInGroup(nameSeq, group)));
 
         return list.size() > 0 ? list : null;
@@ -253,7 +246,25 @@ public class UniLookup {
      * @return {@link List} of {@link Symbol}s or null if there is no such symbol
      */
     public List<Symbol> findNameSeq(String nameSeq) {
-        return findNameSeqInGroups(nameSeq, getValidGroupsAcronyms());
+        return findNameSeqInGroups(nameSeq, getValidGroupsAcronyms().toArray(String[]::new));
+    }
+
+    /**
+     * Get {@link Symbol} with given value from given group.
+     * @param value string with value
+     * @param group group acronym
+     * @return {@link Symbol} or null if there is no such symbol
+     */
+    public Symbol getByValueFromGroup(String value, String group) {
+        try {
+            var query = executeQuery(String.format("SELECT * FROM %s WHERE value='%s'", group, value.toUpperCase()));
+            var list = parseQuery(query);
+
+            return list != null ? list.get(0) : null;
+        } catch (SQLException e) {
+            handleExceptionPrinting(e);
+            return null;
+        }
     }
 
     /**
@@ -270,30 +281,12 @@ public class UniLookup {
     }
 
     /**
-     * Get {@link Symbol} with given value from given group.
-     * @param value string with value
-     * @param group group acronym
-     * @return {@link Symbol} or null if there is no such symbol
-     */
-    public Symbol getByValueFromGroup(String value, String group) {
-        try {
-            ResultSet query = executeQuery(String.format("SELECT * FROM %s WHERE value='%s'", group, value.toUpperCase()));
-            List<Symbol> list = parseQuery(query);
-
-            return list != null ? list.get(0) : null;
-        } catch (SQLException e) {
-            handleExceptionPrinting(e);
-            return null;
-        }
-    }
-
-    /**
      * Get {@link Symbol} with given value.
      * @param value string with value
      * @return {@link Symbol} or null if there is no such symbol
      */
     public Symbol getByValue(String value) {
-        return getByValueFromGroups(value, getValidGroupsAcronyms());
+        return getByValueFromGroups(value, getValidGroupsAcronyms().toArray(String[]::new));
     }
 
     /**
@@ -303,9 +296,22 @@ public class UniLookup {
      */
     public List<Symbol> getSymbols() {
         return queryStreamToList(
-                Arrays.stream(getValidGroupsAcronyms())
+                getValidGroupsAcronyms().stream()
                 .map(this::getGroup)
         );
+    }
+
+    /**
+     * Get {@link Symbol}s from given block.
+     * @param block block name
+     * @return {@link List} of all {@link Symbol}s or null if there is no such block
+     */
+    public List<Symbol> getBlock(String block) {
+        var list = getSymbols().stream()
+                .filter(symbol -> symbol.block.equals(block))
+                .collect(Collectors.toList());
+
+        return list.size() > 0 ? list : null;
     }
 
     /**
@@ -319,16 +325,11 @@ public class UniLookup {
     }
 
     /**
-     * Get {@link Symbol}s from given block.
-     * @param block block name
-     * @return {@link List} of all {@link Symbol}s or null if there is no such block
+     * Get {@link Set} with acronyms from table.
+     * @return {@link Set} with acronyms
      */
-    public List<Symbol> getBlock(String block) {
-        List<Symbol> list = getSymbols().stream()
-                .filter(symbol -> symbol.block.equals(block))
-                .collect(Collectors.toList());
-
-        return list.size() > 0 ? list : null;
+    public Set<String> getValidGroupsAcronyms() {
+        return groupsAcronymsMap.keySet();
     }
 
     /**
@@ -344,12 +345,13 @@ public class UniLookup {
     }
 
     /**
-     * Get {@link Set} with acronyms from table.
-     * @return {@link Set} with acronyms
+     * Convert int or char into correct {@link Symbol} value.
+     * @param i symbol char/int
+     * @return correct value
      */
-    public String[] getValidGroupsAcronyms() {
-        String[] strs = new String[]{};
-        return groupsAcronymsMap.keySet().toArray(strs);
+    public static String intToValue(int i) {
+        var value = Integer.toHexString(i).toUpperCase();
+        return value.length() == 4 ? value : "0" + value;
     }
 
     /**
