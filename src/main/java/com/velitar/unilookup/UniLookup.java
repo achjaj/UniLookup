@@ -1,9 +1,11 @@
 package com.velitar.unilookup;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
@@ -20,8 +22,8 @@ public class UniLookup {
     public static final String VARIANT = "%var%";
 
     private final HashMap<String, String> groupsAcronymsMap;
-    private final String baseFolder;
     private final Statement statement;
+    private final File tmpResources;
 
     private final boolean debug = false;
 
@@ -31,15 +33,40 @@ public class UniLookup {
      * @throws SQLException thrown when creating connection failed
      */
     public UniLookup() throws IOException, SQLException {
-        this.baseFolder = "../../../resources";
+        tmpResources = new File(System.getProperty("user.home"), ".unilookup");
         Connection connection = DriverManager.getConnection("jdbc:sqlite:" + getResource("symbols.db"));
         statement = connection.createStatement();
 
         groupsAcronymsMap = loadGroups();
     }
 
-    private String getResource(String name) {
-        return getClass().getClassLoader().getResource(name).toExternalForm().replace("file:", "");
+    private String getResource(String name) throws IOException {
+        if (!tmpResources.exists() || !tmpResources.isDirectory())
+            createTmpDir();
+
+        var resourceFile = new File(tmpResources, name);
+        if (!resourceFile.exists() || !resourceFile.isFile())
+            unpack(name, resourceFile.toPath());
+
+        return resourceFile.getAbsolutePath();
+    }
+
+    private void createTmpDir() throws IOException {
+        if (!tmpResources.mkdir())
+            throw new IOException("Cannot create resources folder!");
+    }
+
+    private void unpack(String name, Path destination) throws IOException {
+        System.out.println("[UniLookup] Extracting " + name);
+        var is = getClass().getClassLoader().getResourceAsStream(name);
+
+        Files.copy(is, destination);
+    }
+
+    private void deleteResource(String name) throws IOException {
+        var rf = new File(tmpResources, name);
+        if (rf.exists() && !rf.delete())
+            throw new IOException("Cannot delete " + name);
     }
 
     private HashMap<String, String> loadGroups() throws IOException {
@@ -316,6 +343,34 @@ public class UniLookup {
     public static String intToValue(int i) {
         var value = Integer.toHexString(i).toUpperCase();
         return value.length() == 4 ? value : "0" + value;
+    }
+
+    /**
+     * Delete extracted DB file
+     * @throws IOException
+     */
+    public void deleteDBFile() throws IOException {
+        deleteResource("symbols.db");
+    }
+
+    /**
+     * Delete extracted groups acronyms csv
+     * @throws IOException
+     */
+    public void deleteGroupsFile() throws IOException {
+        deleteResource("groups.csv");
+    }
+
+    /**
+     * Delete all extracted files and parent directory
+     * @throws IOException
+     */
+    public void deleteResourcesDirectory() throws IOException {
+        deleteDBFile();
+        deleteGroupsFile();
+
+        if (!tmpResources.delete())
+            throw new IOException("Cannot delete resources directory");
     }
 
 }
