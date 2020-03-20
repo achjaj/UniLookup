@@ -32,12 +32,21 @@ public class UniLookup {
      * @throws IOException thrown when parsing csv failed
      * @throws SQLException thrown when creating connection failed
      */
-    public UniLookup() throws IOException, SQLException {
-        tmpResources = new File(System.getProperty("user.home"), ".unilookup");
+    public UniLookup(File tmpResources) throws IOException, SQLException {
+        this.tmpResources = tmpResources;
         Connection connection = DriverManager.getConnection("jdbc:sqlite:" + getResource("symbols.db"));
         statement = connection.createStatement();
 
         groupsAcronymsMap = loadGroups();
+    }
+
+    /**
+     * Default constructor with tmpResources set to System.getProperty("user.home")/.unilookup
+     * @throws IOException
+     * @throws SQLException
+     */
+    public UniLookup() throws IOException, SQLException {
+        this(new File(System.getProperty("user.home"), ".unilookup"));
     }
 
     private String getResource(String name) throws IOException {
