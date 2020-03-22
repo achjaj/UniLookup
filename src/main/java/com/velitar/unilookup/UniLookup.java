@@ -19,6 +19,7 @@ public class UniLookup {
     public static final String VARIANT = "%var%";
 
     private final HashMap<String, String> groupsAcronymsMap;
+    private final List<String> blocks;
     private final Statement statement;
     private final File tmpResources;
 
@@ -35,6 +36,7 @@ public class UniLookup {
         statement = connection.createStatement();
 
         groupsAcronymsMap = loadGroups();
+        blocks = loadBlocks();
     }
 
     /**
@@ -54,6 +56,10 @@ public class UniLookup {
     public static String intToValue(int i) {
         String value = Integer.toHexString(i).toUpperCase();
         return value.length() == 4 ? value : "0" + value;
+    }
+
+    private List<String> loadBlocks() throws IOException {
+        return Files.readAllLines(Paths.get(getResource("blocks")));
     }
 
     private void createTmpDir() throws IOException {
@@ -377,6 +383,97 @@ public class UniLookup {
 
         if (!tmpResources.delete())
             throw new IOException("Cannot delete resources directory");
+    }
+
+    /**
+     * Get names of all blocks
+     * @return array of Strings with names
+     */
+    public String[] getBlocks() {
+        return blocks.toArray(new String[]{});
+    }
+
+    /**
+     * Get symbol with specified value from specified block
+     * @param value symbol value
+     * @param block name of block
+     * @return symbol orr null if there is no such symbol or block
+     */
+    public Symbol getByValueFromBlock(String value, String block) {
+        List<Symbol> symbols = getBlock(block);
+        if (symbols == null)
+            return null;
+
+        return symbols.stream()
+                .filter(symbol -> symbol.value.equals(value))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Get symbol with specified value from list og blocks
+     * @param value symbol value
+     * @param blocks array of blocks names
+     * @return symbol or null if tehere is no such symbol
+     */
+    public Symbol getByValueFromBlocks(String value, String... blocks) {
+        return Arrays.stream(blocks)
+                .map(block -> getByValueFromBlock(value, block))
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Get symbols from block with have seq in their names
+     * @param seq any substring
+     * @param block block name
+     * @return list of symbols
+     */
+    public List<Symbol> findNameSeqInBlock(String seq, String block) {
+        List<Symbol> symbols = getBlock(block);
+        if (symbols == null)
+            return null;
+
+        return symbols.stream()
+                .filter(symbol -> symbol.name.contains(seq))
+                .collect(Collectors.toList());
+
+    }
+
+    /**
+     * Get symbols from blocks which have seq in their names
+     * @param seq any substring
+     * @param blocks array of block names
+     * @return list of symbols
+     */
+    public List<Symbol> findNameSeqInBlocks(String seq, String... blocks) {
+        return queryStreamToList(Arrays.stream(blocks)
+                .map(block -> findNameSeqInBlock(seq, block)));
+    }
+
+    /**
+     * Get symbols with specified name from specified block
+     * @param name symbols name
+     * @param block block name
+     * @return list of symbols
+     */
+    public List<Symbol> getByNameFromBlock(String name, String block) {
+        return getBlock(block).stream()
+                .filter(symbol -> symbol.name.equals(name))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * get symbols with specified name from specified blocks
+     * @param name symbols name
+     * @param blocks array of block names
+     * @return list of symbols
+     */
+    public List<Symbol> getByNameFromBlocks(String name, String... blocks) {
+        return queryStreamToList(Arrays.stream(blocks)
+                .map(block -> getByNameFromBlock(name, block)));
+
     }
 
 }
