@@ -46,4 +46,9 @@ public class Symbol {
     public String toString() {
         return String.format("{U+%s (%c) %s Block: %s, Group: %s, Emoji: %b}", value, aChar(), name, block, group, emoji);
     }
+
+    public String toJSON() {
+        return String.format("{\"name\": \"%s\", \"value\": \"%s\", \"group\": \"%s\", \"block\": \"%s\", \"emoji\": %b}",
+                name, value, group, block, emoji);
+    }
 }
