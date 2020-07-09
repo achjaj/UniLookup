@@ -27,7 +27,7 @@ public class UniLookup {
     private Cache cache;
 
     /**
-     * Constrictor
+     * Constructor
      * @throws IOException thrown when parsing csv failed
      */
     public UniLookup(String root, Cache.CacheSettings settings) throws IOException {
