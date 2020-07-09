@@ -1,5 +1,7 @@
 package com.velitar.unilookup;
 
+import org.json.JSONObject;
+
 /**
  * Unicode symbol representation
  * @author Velitar
@@ -18,6 +20,14 @@ public class Symbol {
         this.group = group;
         this.block = block;
         this.emoji = emoji;
+    }
+
+    public Symbol(JSONObject obj) {
+        this.value = obj.getString("value");
+        this.name = obj.getString("name");
+        this.group = obj.getString("group");
+        this.block = obj.getString("block");
+        this.emoji = obj.getBoolean("emoji");
     }
 
     /**
