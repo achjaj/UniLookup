@@ -12,11 +12,10 @@ import java.util.stream.Stream;
 /**
  * Lookup table
  * @author Velitar
- * @version 0.1a
+ * @version 0.1
  */
 public class UniLookup {
-    public static final String VERSION = "0.1a";
-    public static final String VARIANT = "%var%";
+    public static final String VERSION = "0.1";
 
     private final HashMap<String, String> groupsAcronymsMap;
     private final List<String> blocks;
@@ -123,6 +122,18 @@ public class UniLookup {
             list.add(parseSymbol(query));
 
         return list.size() > 0 ? list : null;
+    }
+
+    public String getGeneratorVersion() throws SQLException {
+        return executeQuery("SELECT gVersion FROM meta").getString(0);
+    }
+
+    public String getUnicodeVersion() throws SQLException {
+        return executeQuery("SELECT uVersion FROM meta").getString(0);
+    }
+
+    public String getFlavour() throws SQLException {
+        return executeQuery("SELECT flavour FROM meta").getString(0);
     }
 
     /**
