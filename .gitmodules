@@ -1,0 +1,3 @@
+[submodule "dbgenerator"]
+	path = dbgenerator
+	url = https://github.com/achjaj/dbgenerator.git
